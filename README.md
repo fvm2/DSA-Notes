@@ -21,6 +21,14 @@ This is a collection of notes for the course ECE345 - Algorithms and Data Struct
 - [Hash Tables](#hash-tables)
 - [Dynamic Programming](#dynamic-programming)
 - [Greedy Algorithms](#greedy-algorithms)
+- [Amortized Analysis](#amortized-analysis)
+- [Splay Trees](#splay-trees)
+- [Graph Algorithms](#graph-algorithms)
+- [Minimum Spanning Trees](#minimum-spanning-trees)
+- [Shortest Paths](#shortest-paths)
+- [Maximum Flow](#maximum-flow)
+- [History and Turing Machines](#history-and-turing-machines)
+- [NP Completeness](#np-completeness)
 
 ## Asymptotic Notation
 
@@ -687,3 +695,261 @@ Used for problems with the following properties:
 ###### Proof of correctness template in Tutorial 7.
 
 ###### Proof of optimality template in Tutorial 7 Notes.
+
+## Amortized Analysis
+
+"Amortized analysis differs from average-case analysis in that probability is not involved. An amortized analysis guarantees the **average performance** of each operation in the **worst case**." - CLRS.
+
+In simple terms, amortized analysis is used to determine the average time complexity of a sequence of operations.
+
+Amortized Analysis is useful when the worst-case time complexity of a single operation is not representative of the overall performance of the algorithm, and the algortihm is composed by cycles of expensive and cheap operations.
+
+- **Average Cost**: Mean over all possible input costs.
+- **Expected Cost**: Expectation over all possible input costs with respect to a probability distribution. Note that if the probability distribution is uniform, then the expected cost is the average cost.
+- **Amortized Cost**: Average cost per operation in a sequence of operations in the worst case. No probability involved.
+
+Three techniques covered in Textbook, only 1 and 2 are covered in the course:
+
+1. **Aggregate Analysis**: Determine an upper bound $T(n)$ on the total cost of a sequence of $n$ operations (worst case). The average cost per operation is $T(n)/n$. Then, take the average cost as the amortized cost of each operation, so that all operations have the same amortized cost.
+
+2. **Accounting Method**: Determine an amortized cost of each type of operation. This method overcharges some operations early in the sequence (pre-paid credit) to pay for undercharges later in the sequence.
+
+3. **Potential Method**: Like the accounting method, determines an amortized cost of each operation and overcharges some operations to pay for undercharges. However, the potential method uses a potential function to determine the amortized cost. Mantains the credit as "potential energy" in the data structure as a whole instead of individual operations.
+
+### Aggregate Analysis
+
+1. Given some operations/functions $f_i(x)$ and a sequence $(x_1, x_2, ..., x_n)$
+2. Determine $\Sigma_{i=1}^{N} c(f_i(x_i)) = T(n)$ the total running time to execute the entire sequence.
+3. The amortized cost per operation is $T(n)/n$.
+
+### Accounting Method
+
+1. Declare that $\$\hat{c}_i$ will be charged for each operation/function.
+2. Describe a procedure for how the charge will be allocated.
+3. Assert a credit invariant. A claim about the value of the cummulative stored credit $\sum_{i=1}^{N} (\hat{c}_i - c_i)$. Usually of the form "element with property P contains $x$ stored credit ($x$ can be dependent on property P)".
+
+4. Argue or prove that the credit invariant holds.
+5. Using the credit invariant, argue why the credit never goes negative.
+
+$$
+  \sum_{i=1}^{N} (\hat{c}_i - c_i) \geq 0, \quad \forall n
+$$
+
+> $c_i$ is the actual cost of the operation $x_i$
+
+> $\hat{c}_i$ is the amortized cost of the operation $x_i$.
+
+> $\hat{c}_i - c_i$ is the leftover credit after executing the operation $x_i$.
+
+6. The amortized cost of each operation $i$ is $O(\hat{c}_i)$.
+
+**Worst Case Upperbound**:
+
+$$
+  \hat{c} \geq c\left(x_i\right), \forall i\text{, then } n \hat{c} \geq \sum_{i=1}^n c\left(x_i\right)=T(n)
+$$
+
+**Amortized Upperbound**:
+
+$$
+  \frac{1}{n} \sum_{i=1}^n \hat{c} \geq \frac{1}{n} \sum_{i=1}^n c\left(x_i\right)=\frac{T(n)}{n} \Rightarrow \mathcal{O}(\hat{c})=\frac{T(n)}{n}
+$$
+
+### Accounting Method Summary:
+
+- Let $D_i$ be the data structure after the $i$-th operation.
+- $\hat{c}_i$ is the amortized cost of the $i$-th operation.
+- $c_i$ is the actual cost of the $i$-th operation.
+
+1. **Initialization**: $D_0$ is the empty data structure.
+2. **Credit Invariant**: $\sum_{i=1}^{N} (\hat{c}_i - c_i) \geq 0 \quad \forall N$. This means, that for each operation, the credit is never negative.
+3. **Charge and Credit**: Overcharge some operations to pay for undercharges.
+   - if $\hat{c}_i > c_i$, then the operation is overcharged. Save unused credit in $D_i$.
+   - if $\hat{c}_i < c_i$, then the operation is undercharged. Use stored credit in $D_i$.
+4. **Amortized Cost**: $\mathcal{O}(\hat{c}_i)$.
+
+## Splay Trees
+
+- The primary objective of a Splay Tree is to keep the most frequently accessed elements near the root. This help reduce search times.
+- Self-adjusting binary search tree with no balance condition.
+- As its not a balanced tree, it does not guarantee $O(log(n))$ time complexity for all operations, some can be $\Theta(n)$. But the amortized time complexity is $O(log(n))$.
+- **Splay Operation**: Move a node to the root of the tree by performing a sequence of rotations.
+- **Splay Tree**: A binary search tree that uses the splay operation to maintain balance.
+
+Additional facts:
+
+- Most used data structure in practice.
+- Fast access to recently accessed elements, example: caches.
+- Rotations don't affect the properties of the tree.
+
+```python
+def Splay(T, x):
+    """
+    Splay operation to move node x to the root of the tree T.
+    """
+    while x is not the root:
+        p = parent(x)
+        if p is the root:
+            rotate(p)
+            # now x is at the root
+        elif x and p are both right children or left children:
+            rotate(parent(p))
+            rotate(p)
+            # now x is where its grandparent was
+        else: # x is a left child and p a right child, or vice versa
+            rotate(p)
+            rotate(parent(x))
+            # now x is where its grandparent was
+```
+
+Three types of rotations:
+
+1. **Zig-Zig**
+2. **Zig-Zag**
+3. **Zig**
+
+When do we splay?
+
+1. **Search**: Splay the node that is being searched for.
+2. **Insertion**: Splay the node that was inserted.
+3. **Deletion**: Splay the parent of the deleted node.
+
+###### Good resource: https://www.youtube.com/watch?v=wfF4SHkKneg
+
+## Graph Algorithms
+
+### Breadth-First Search
+
+- Discovers all nodes of depth $k$ before discovering nodes of depth $k+1$.
+- Only discovers nodes that are reachable from the source node, i.e $\exists$ a path $s \rightarrow t$.
+- Time Complexity: $O(V + E)$
+- Color Notation:
+
+  - White nodes: undiscovered.
+  - Gray nodes: processing.
+  - Black nodes: finished.
+
+- Mantain $v.d \lor d[v]$ and $v.\pi \lor \pi[v]$ for each node $v$. ($x[v]$ and $v.x$ different notations for the same thing).
+
+  - $\forall v \in V$, $d[v] = min\{\#\text{ edges in any path from } s \text{ to } v\}$. This is the shortest path from $s$ to $v$.
+  - if $v$ is not reachable from $s$, then $d[v] = \infty$.
+  - $\pi[v]$ is the predecessor of $v$ in the shortest path from $s$ to $v$.
+
+- BFS can be used to find the shortest path between two nodes in an unweighted graph. SSSP (Single Source Shortest Path).
+
+```python
+def BFS (G, s):
+"""
+Where G is the graph and s is the source node
+"""
+  let Q be queue
+  # Inserting s in queue until all its neighbour vertices are marked.
+  Q.enqueue(s)
+
+  mark s as visited.
+  while Q is not empty:
+    # Removing that vertex from queue, whose neighbour will be visited now
+    v = Q.dequeue()
+
+    # processing all the neighbours of v
+    for all neighbours w of v in Graph G
+      if w is not visited
+        # Stores w in Q to further visit its neighbour
+        mark w as visited.
+        Q.enqueue(w)
+```
+
+> source: https://www.hackerearth.com/practice/algorithms/graphs/breadth-first-search/tutorial/
+
+Example:
+
+![BFS1](/images/bfs1.png)
+![BFS2](/images/bfs2.png)
+
+### Depth-First Search
+
+- Traverse as far as possible along each branch before backtracking.
+
+- Time Complexity: $O(V + E)$
+
+- Mantains $v.d$, $v.f$, and $v.\pi$ for each node $v$.
+
+  - $d[v]$: Discovery time. When the node was first discovered.
+  - $f[v]$: Finish time. When the node was fully explored.
+  - $\pi[v]$: Predecessor of $v$ in the DFS tree.
+  - Note that $d[u] < f[u]$ by construction in the DFS algorithm.
+
+- Color Notation:
+
+  - White: undiscovered.
+  - Gray: processing.
+  - Black: finished.
+
+- Edges:
+
+  1. **Tree Edge**: Discovered a new vertex. In the DFS format, i.e $(u,v)$.
+  2. **Back Edge**: $(u,v)$ such that $u$ is a descendant of $v$. (includes self-loops).
+  3. **Forward Edge**: $(u,v)$ such that $u$ is an ancestor of $v$, but is not a tree edge.
+  4. **Cross Edge**: All other edges.
+
+- A back edge exists in a DFS forest $\iff$ the graph has a cycle.
+- Undirected graph $\rightarrow$ all edges are either tree or back edges.
+
+Identifying the type of edge when exploring $(u,v)$ in DFS:
+
+- if $v$ is white, then $(u,v)$ is a tree edge.
+- if $v$ is gray, then $(u,v)$ is a back edge.
+- if $v$ is black:
+  - if $d[u] < d[v]$, then $(u,v)$ is a forward edge.
+  - if $d[u] > d[v]$, then $(u,v)$ is a cross edge.
+
+Example:
+
+![DFS](/images/dfs.png)
+
+Where:
+
+- Yellow: Tree Edge
+- Blue: Back Edge
+- Purple: Forward Edge
+- Orange: Cross Edge
+
+```python
+DFS-iterative (G, s):
+"""
+Where G is graph and s is source vertex
+"""
+  let S be stack
+  # Inserting s in stack
+  S.push(s)
+  mark s as visited
+
+  while S is not empty:
+    # Pop a vertex from stack to visit next
+    v = S.top()
+    S.pop()
+    # Push all the neighbours of v in stack that are not visited
+    for all neighbours w of v in Graph G:
+      if w is not visited :
+        S.push( w )
+        mark w as visited
+
+
+DFS-recursive(G, s):
+  mark s as visited
+  for all neighbours w of s in Graph G:
+    if w is not visited:
+      DFS-recursive(G, w)
+```
+
+### Topological Sort
+
+## Minimum Spanning Trees
+
+## Shortest Paths
+
+## Maximum Flow
+
+## History and Turing Machines
+
+## NP-Completeness
