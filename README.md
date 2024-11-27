@@ -942,11 +942,235 @@ DFS-recursive(G, s):
       DFS-recursive(G, w)
 ```
 
+> source: https://www.hackerearth.com/practice/algorithms/graphs/depth-first-search/tutorial/
+
 ### Topological Sort
+
+- Produces a total ordering from a partial ordering.
+- Must be a Directed Acyclic Graph (DAG).
+- Time Complexity: $O(V + E)$
+- To convert an undirected graph to a directed graph, just add an edge $(v,u)$ for each edge $(u,v)$ in the undirected graph, this doubles the number of edges, but the time complexity remains the same.
+- Real life application: Time scheduling with dependencies.
+- What Topo Sort does is order every node in a graph in such a way that if there is an edge from $A$ to $B$, then $A$ comes before $B$ in the ordering, this is called a topological ordering.
+
+> Note: Tarjan's Algorithm is used to verify if a directed graph contains a cycle.
+
+- Algorithm explanation: Start from any node, then perform DFS with a recursion call stack, when a node has no more children, add it to the topological ordering and backtrack.
+
+```python
+
+def TopologicalSort(G):
+  """
+  Where G is a directed graph represented as an adjacency list.
+  """
+  N = G.size() # Number of vertices
+  V = [False] * N # Visited array
+  ordering = [0] * N
+  i = N - 1
+
+  for at in range(0, N):
+    if not V[at]:
+      visited = []
+      DFS(at, V, visited, G)
+
+      for node in visited:
+        ordering[i] = node
+        i -= 1
+
+  return ordering
+```
+
+> Good video: https://www.youtube.com/watch?v=eL-KzMXSXXI
 
 ## Minimum Spanning Trees
 
+- Spanning Tree: A subset of Edges that connects all vertices. $T \subseteq E$ such that $\forall v \in V$, $\exists (u,v) \in T$ or $(v,u) \in T$.
+
+- MST: Spanning Tree such that $w(T) = \Sigma_{(u,v) \in T} w(u,v)$ is minimized.
+
+- An MST always has $|V| - 1$ edges, with $|V|$ vertices.
+
+Consider:
+
+- $(u,v) \in T$
+- $(x,y) \notin T$
+
+Then:
+
+- $T \cup \{(x,y)\}$ has a cycle.
+- $T \setminus \{(u,v)\} \cup \{(x,y)\}$ is a spanning tree.
+
+### Prim's Algorithm
+
+- Time Complexity using Binary Heap: $O(E \log V)$
+- Time Complexity using Fibonacci Heap: $O(E + V \log V)$
+- How does it work? In simple words, consider $S$ and $\hat{S}$ a partition of nodes, where $S$ are the visited nodes, we start by choosing any node as the root and adding it to $S$, then we add the "cheapest" edge that connects the chosen node with a node in $\hat{S}$, then we add the node to $S$ and repeat the process until all nodes are in $S$.
+
 ## Shortest Paths
+
+- Given a graph $G = (V,E)$, a weight function $w: E \rightarrow \mathbb{R}$, and a source node $s \in V$.
+- The weight of a path $p = (v_0, v_1, ..., v_k)$ is defined $w(p) = \Sigma_{i=1}^{k} w(v_{i-1}, v_i)$.
+- The shortest path weigth is defined by:
+
+$$
+  \delta(s,v) = \begin{cases}
+    \min_{p \in P(s,v)} w(p) & \text{if } v \text{ is reachable from } s \\
+    \infty & \text{otherwise}
+  \end{cases}
+$$
+
+- Mantain:
+  - $v.d$: our estimate of $\delta(s,v)$.
+  - $v.\pi$: the predecessor of $v$ in the shortest path from $s$ to $v$.
+
+### Facts:
+
+1. The shortest path problem has **optimal substructure**.
+2. Negative weights are allowed as long as there are no negative cycles.
+3. The shortest path will never contain a cycle.
+
+### Algorithms:
+
+1. **Relax(u, v, w)**: function and concept of edge relaxation. $O(1)$ time complexity.
+2. **Bellman-Ford(G, w, s)**: Works on any graph with no negative cycles. Time Complexity: $O(VE)$.
+3. **Dijkstra(G, w, s)**: Works on graphs with positive weights. Time Complexity: $O((V + E) \log V)$ using a binary heap, $O((V\log V) + E)$ using a Fibonacci heap.
+
+### Variants:
+
+- Single-source Shortest-path: given $G = (V, E)$ and **source** $s \in V$, we want to find shortest path from $s$ to $v$, $\forall v \in V$.
+
+- Single-destination Shortest-path: given $G = (V, E)$ and **target** $t \in V$, we want to find shortest path from $u$ to $t$, $\forall u \in V$.
+
+- Single-pair Shortest-path: given $G = (V, E)$ and pair of vertices $u, v \in V$, we want to find shortest path from $u$ to $v$.
+
+- All-pair Shortest-path: given $G = (V, E)$, we want to find shortest path from $u$ to $v$, $\forall u, v \in V$.
+
+> Note: **Single source** is used to solve **all** variants
+
+### Properties: CLRS (22.5)
+
+1. **Triangle Inequality**: $\forall (u,v) \in E$, $\delta(s,v) \leq \delta(s,u) + w(u,v)$.
+2. **Upper-bound Property**: $d[v] \geq \delta(s,v)$, $\forall v \in V$. And once $v.d = \delta(s,v)$, it will never change.
+3. **No-path Property**: If there is no path from $s$ to $v$, then $v.d = \delta(s,v) = \infty$.
+4. **Convergence Property**: If $s \rightarrow u \rightarrow v$, is the shortest path in $G$. If $d[u] = \delta(s,u)$ (prior to relaxing edge $(u,v)$), then $d[v] = \delta(s,v)$ at all times afterwards.
+5. **Path-relaxation**: if $p = (v_0, v_1, ..., v_k)$ is the shortest path from $s$ to $v_k$, and paths are relaxed in order $(v_0, v_1), ..., (v_{k-1}, v_k)$, then $d[v_k] = \delta(s,v_k)$.
+6. **Predecessor Subgraph Property**: Once $d[v] = \delta(s,v)$, the predecessor subgraph is a shortest-path tree rooted at $s$.
+
+### Path Relaxation:
+
+- Starting from $s$, if there are two paths to $v$ and $w(p_1) > w(p_2) + w(u,v)$, where $p_1$ is the path from $s$ to $v$ and $p_2$ is the path from $s$ to $u$ and $u$ to $v$, we want to take path $p_2$ instead of $p_1$.
+
+```python
+def Relax(u, v, w):
+  """
+  u: source node
+  v: destination node
+  w: weight of edge (u,v)
+  """
+  d[v] = min(d[v], d[u] + w(u,v))
+
+def Relax(u, v, w):
+  """
+  u: source node
+  v: destination node
+  w: weight of edge (u,v)
+  """
+  if d[v] > d[u] + w(u,v):
+    d[v] = d[u] + w(u,v)
+    pi[v] = u
+```
+
+### Bellman-Ford Algorithm
+
+- Assume **$G$** contains no negative cycles.
+- Time Complexity: $O(VE)$
+- Path Relaxation: if $p = (v_0, v_1, ..., v_k)$ is the shortest path from $s$ to $v_k$, and paths are relaxed in order $(v_0, v_1), ..., (v_{k-1}, v_k)$, then $d[v_k] = \delta(s,v_k)$.
+- DP algorithm, finds shortest path of length $\leq i$ in each iteration.
+
+```python
+def Bellman-Ford(G, w, s):
+  """
+  G: graph
+  w: weight function
+  s: source node
+  """
+  Initialize-Single-Source(G, s)
+  for i in range(1, len(G.V) - 1):
+    for (u,v) in G.E:
+      # Relax all edges V-1 times
+      Relax(u, v, w)
+
+  for (u,v) in G.E:
+    if d[v] > d[u] + w(u,v):
+      # Negative cycle
+      return False
+
+  # Shortest Path
+  return True
+```
+
+- This algorithm can replace Simplex for linear programming problems, i.e solving systems of linear inequalities.
+
+Example:
+
+![Bellman-Ford](/images/bellman-ford.png)
+
+### Dijkstra's Algorithm
+
+- Assume **$G$** contains no negative edges.
+- Greedy Algorithm, always chooses the node with the smallest distance.
+
+```python
+def Dijkstra(G, w, s):
+  """
+  G: graph
+  w: weight function
+  s: source node
+  """
+  Initialize-Single-Source(G, s)
+  # Set of vertices whose first shortest path weights have been determined
+  S = []
+  Q = []
+
+  for v in G.V:
+    # Priority Queue sorted by d[v]
+    Insert(Q, v)
+
+  while Q is not empty:
+    u = Extract-Min(Q)
+    S.append(u)
+    for v in G.Adj[u]:
+      Relax(u, v, w)
+      # Priority Queue sorted by d[v]
+      Decrease-Key(Q, v)
+```
+
+Example:
+
+![Dijkstra](/images/dijkstra.png)
+
+## Difference Constraints Problems: Bellman-Ford Application
+
+- Given a set of variables $x_1, x_2, ..., x_n$ and a set of constraints of the form $x_j - x_i \leq b_k$, where $b_k$ is a constant.
+
+- To solve a difference constraint problem with $n$ variables:
+
+1. Build a constraint graph (weighted, directed) $G = V, E$.
+
+   - $V = \{v_0, v_1, ..., v_n\}$ one vertex per variable. Define $v_0$ as the _pseudo-source_.
+   - $E = \{(v_i, v_j) \mid x_j - x_i \leq b_k\ \text{ is a constraint}\} \cup \{(v_0, v_1), ..., (v_0, v_n)\}$. One edge per constraint. Note that direction is from $x_i$ to $x_j$ and we connect the **pseudo-source** to all other vertices.
+
+2. Assign weights:
+
+   - $w(v_0, v_i) = 0$, for all $i$.
+   - $w(v_i, v_j) = b_k$, for all constraints $x_j - x_i \leq b_k$.
+
+3. Theorem:
+
+   - If $G$ has no negative weight cycle, then $x_1 = \delta(v_0, v_1), ..., x_n = \delta(v_0, v_n)$ is a feasible solution.
+   - If $G$ has a negative weight cycle, then no feasible solution exists.
+
+4. Build the graph and run Bellman-Ford to find the shortest path from the **pseudo-source** to all other vertices, which gives the solution, or detect a negative cycle.
 
 ## Maximum Flow
 
